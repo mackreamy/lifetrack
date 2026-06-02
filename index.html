@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>LifeTrack</title>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon-512.svg"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="LifeTrack"/>
+<meta name="theme-color" content="#111111"/>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body,#root{height:100%;width:100%;overflow:hidden;}
+body{font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#111;}
+
+/* Base vars — minimal/outline mode */
+:root{
+  --bg:#ffffff;
+  --surface:#f7f7f7;
+  --surface2:#efefef;
+  --border:#e0e0e0;
+  --text:#111111;
+  --text2:#444444;
+  --text3:#888888;
+  --accent:#111111;
+  --accent-fg:#ffffff;
+  --radius:8px;
+  --font:system-ui,-apple-system,sans-serif;
+  --density:1;
+}
+
+/* Theme overrides applied via .theme-* on #root */
+.theme-dusk{--bg:#1a1625;--surface:#231e33;--surface2:#2d2742;--border:#3d3560;--text:#e8e0f5;--text2:#b8afd5;--text3:#7a6fa0;--accent:#9b7fe8;--accent-fg:#fff;}
+.theme-slate{--bg:#131720;--surface:#1c2130;--surface2:#252c40;--border:#333d55;--text:#dde4f0;--text2:#8896b0;--text3:#556080;--accent:#6b8cde;--accent-fg:#fff;}
+.theme-ember{--bg:#1c1410;--surface:#261c14;--surface2:#33241a;--border:#4d3520;--text:#f0e0cc;--text2:#c09060;--text3:#806040;--accent:#e07830;--accent-fg:#fff;}
+.theme-ocean{--bg:#0d1a20;--surface:#122030;--surface2:#182c40;--border:#1f4060;--text:#c0e8f5;--text2:#6aafc8;--text3:#3d7090;--accent:#30b8e0;--accent-fg:#fff;}
+.theme-sage{--bg:#121a14;--surface:#182118;--surface2:#1f2d20;--border:#2a4030;--text:#c8e0c0;--text2:#78a870;--text3:#486848;--accent:#5aaa60;--accent-fg:#fff;}
+.theme-rose{--bg:#1a1220;--surface:#221630;--surface2:#2c1e3d;--border:#402858;--text:#f0d0f0;--text2:#c080c0;--text3:#885088;--accent:#d060c8;--accent-fg:#fff;}
+.theme-mint{--bg:#f0faf5;--surface:#e4f5ec;--surface2:#d8f0e3;--border:#b0dcc0;--text:#0d2a18;--text2:#2d6045;--text3:#5a9070;--accent:#1a9e60;--accent-fg:#fff;}
+.theme-breeze{--bg:#f0f5ff;--surface:#e4ecfa;--surface2:#d8e4f5;--border:#b0c8e8;--text:#0d1e38;--text2:#2d4a78;--text3:#5a78aa;--accent:#2060d0;--accent-fg:#fff;}
+.theme-sand{--bg:#faf5ec;--surface:#f5edd8;--surface2:#ede0c0;--border:#d8c89a;--text:#2a200c;--text2:#6a5020;--text3:#9a7840;--accent:#c08020;--accent-fg:#fff;}
+
+/* Font variants */
+.font-rounded{--font:"SF Pro Rounded",system-ui,sans-serif;}
+.font-sharp{--font:"Inter","Helvetica Neue",sans-serif;}
+.font-mono{--font:"SF Mono","Fira Code",monospace;}
+.font-serif{--font:"Georgia","Times New Roman",serif;}
+
+/* Density */
+.density-compact{--density:0.8;}
+.density-spacious{--density:1.25;}
+
+/* Radius */
+.radius-sharp{--radius:2px;}
+.radius-medium{--radius:8px;}
+.radius-rounded{--radius:16px;}
+.radius-pill{--radius:999px;}
+
+/* App shell */
+.app{display:flex;flex-direction:column;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);}
+.app-body{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:60px;}
+.app-body::-webkit-scrollbar{width:0;}
+
+/* Bottom nav */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:60px;
+  display:flex;align-items:stretch;
+  background:var(--bg);
+  border-top:1px solid var(--border);
+  z-index:100;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;
+  color:var(--text3);font-size:10px;font-weight:500;
+  border:none;background:none;
+  transition:color .15s;
+}
+.nav-item.active{color:var(--accent);}
+.nav-icon{font-size:20px;line-height:1;}
+
+/* Header */
+.page-header{
+  padding:16px 16px 8px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.page-title{font-size:22px;font-weight:700;color:var(--text);}
+.page-sub{font-size:13px;color:var(--text3);}
+
+/* Sub-nav */
+.sub-nav{
+  display:flex;overflow-x:auto;
+  border-bottom:1px solid var(--border);
+  padding:0 16px;gap:0;
+}
+.sub-nav::-webkit-scrollbar{display:none;}
+.sub-tab{
+  padding:10px 14px;font-size:13px;font-weight:500;
+  color:var(--text3);cursor:pointer;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;
+  transition:color .15s,border-color .15s;
+}
+.sub-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* Cards */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:calc(14px * var(--density));
+  margin-bottom:10px;
+}
+.card-flat{background:transparent;border:1px solid var(--border);border-radius:var(--radius);padding:calc(12px * var(--density));margin-bottom:8px;}
+.card-glass{background:var(--surface);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius);padding:calc(14px * var(--density));margin-bottom:10px;}
+
+/* Stat row */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.stat-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+.stat-val{font-size:20px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* Progress bar */
+.prog-wrap{background:var(--surface2);border-radius:999px;height:6px;overflow:hidden;margin:6px 0;}
+.prog-bar{height:100%;background:var(--accent);border-radius:999px;transition:width .3s;}
+
+/* XP bar */
+.xp-bar-wrap{background:var(--surface2);border-radius:999px;height:8px;overflow:hidden;}
+.xp-bar{height:100%;background:var(--accent);border-radius:999px;}
+
+/* Pill badge */
+.pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--text2);background:var(--surface);}
+.pill-accent{background:var(--accent);color:var(--accent-fg);border-color:transparent;}
+
+/* List item */
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.list-item:last-child{border-bottom:none;}
+
+/* Input */
+.field{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;outline:none;}
+.field:focus{border-color:var(--accent);}
+.label{font-size:12px;color:var(--text3);margin-bottom:4px;display:block;}
+
+/* Button */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--font);transition:opacity .15s;}
+.btn:active{opacity:.75;}
+.btn-primary{background:var(--accent);color:var(--accent-fg);border-color:transparent;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* Section heading */
+.section-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:16px 0 8px;}
+
+/* Toggle */
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;background:var(--surface2);border-radius:999px;cursor:pointer;transition:background .2s;border:1px solid var(--border);}
+.toggle input:checked+.toggle-track{background:var(--accent);border-color:transparent;}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle input:checked~.toggle-thumb{transform:translateX(18px);}
+
+/* Scroll pad */
+.pad{padding:16px;}
+.pad-x{padding:0 16px;}
+
+/* Activity feed */
+.feed-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.feed-icon{width:32px;height:32px;border-radius:var(--radius);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.feed-text{font-size:13px;color:var(--text);}
+.feed-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* Simple bar chart */
+.bar-chart{display:flex;align-items:flex-end;gap:4px;height:80px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar-fill{width:100%;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85;min-height:2px;}
+.bar-lbl{font-size:10px;color:var(--text3);}
+
+/* Settings */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);}
+.setting-label{font-size:15px;color:var(--text);}
+.setting-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.theme-btn{padding:10px 6px;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;text-align:center;font-size:11px;font-weight:600;background:var(--surface);color:var(--text);transition:border-color .15s;}
+.theme-btn.selected{border-color:var(--accent);border-width:2px;}
+.option-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.option-btn{padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);font-size:12px;cursor:pointer;background:var(--surface);color:var(--text2);transition:border-color .15s,background .15s;}
+.option-btn.selected{border-color:var(--accent);color:var(--accent);background:var(--surface2);}
+
+/* Donut placeholder */
+.donut-wrap{display:flex;flex-direction:column;align-items:center;padding:12px 0;}
+.donut-svg{width:140px;height:140px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useContext,createContext,useRef,useCallback}=React;
+
+// ─── Contexts ──────────────────────────────────────────────────────────────
+const ThemeCtx=createContext({});
+const EmojiCtx=createContext('on');
+
+// ─── Storage helpers ────────────────────────────────────────────────────────
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const load=(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}};
+
+// ─── Seed data ──────────────────────────────────────────────────────────────
+const SEED_ACCOUNTS=[
+  {id:1,name:'BILLS ON BILLS',type:'Savings',balance:2958.31},
+  {id:2,name:'MACKREAMY FUNDS',type:'Checking',balance:2514.04},
+  {id:3,name:'SPEND WISELY',type:'Credit Card',balance:0.00},
+];
+const SEED_TRANSACTIONS=[
+  {id:1,date:'2026-05-25',desc:'Mobile Deposit — Paycheck',amount:1773.95,cat:'Income',icon:'💵'},
+  {id:2,date:'2026-05-22',desc:'Robinhood Transfer',amount:-500,cat:'Investing',icon:'📈'},
+  {id:3,date:'2026-05-20',desc:'Honda Financial',amount:-297.54,cat:'Transport',icon:'🚗'},
+  {id:4,date:'2026-05-19',desc:'Muscle Inc',amount:-29.99,cat:'Health',icon:'💪'},
+  {id:5,date:'2026-05-18',desc:'Smithfield Animal Hospital',amount:-389.00,cat:'Pets',icon:'🐾'},
+  {id:6,date:'2026-05-15',desc:'Martz Transit',amount:-60,cat:'Transport',icon:'🚌'},
+  {id:7,date:'2026-05-13',desc:'Apple Credit Card Payment',amount:-926.29,cat:'Bills',icon:'💳'},
+  {id:8,date:'2026-05-10',desc:'Groceries',amount:-134.22,cat:'Groceries',icon:'🛒'},
+  {id:9,date:'2026-05-08',desc:'FanDuel',amount:-20.00,cat:'Entertainment',icon:'🎲'},
+  {id:10,date:'2026-05-06',desc:'Mobile Deposit — Paycheck',amount:1557.86,cat:'Income',icon:'💵'},
+  {id:11,date:'2026-05-05',desc:'Patreon',amount:-10.59,cat:'Subscriptions',icon:'🎭'},
+];
+const BUDGET_CATS=[
+  {name:'Rent',budget:1000,spent:1000,icon:'🏠'},
+  {name:'Investing',budget:2000,spent:4393,icon:'📈'},
+  {name:'Transport',budget:800,spent:752,icon:'🚌'},
+  {name:'Groceries',budget:250,spent:199,icon:'🛒'},
+  {name:'Pets',budget:200,spent:389,icon:'🐾'},
+  {name:'Health',budget:50,spent:30,icon:'💪'},
+  {name:'Dining',budget:100,spent:54,icon:'🍔'},
+  {name:'Entertainment',budget:80,spent:60,icon:'🎮'},
+  {name:'Bills',budget:1200,spent:926,icon:'💳'},
+];
+const SEED_WORKOUTS=[
+  {id:1,type:'Strength',icon:'🏋️',date:'2026-05-22',duration:60,notes:'Upper body — chest, shoulders, triceps',xp:25},
+  {id:2,type:'Cardio',icon:'🏃',date:'2026-05-20',duration:35,notes:'Morning run — 5K',xp:20},
+  {id:3,type:'Strength',icon:'🏋️',date:'2026-05-18',duration:55,notes:'Legs — squats, lunges, leg press',xp:25},
+];
+const SEED_SKILLS=[
+  {id:1,name:'Piano',icon:'🎹',cat:'Music',level:1,xp:0,goal:'Learn 5 songs',sessions:0,totalMin:0},
+  {id:2,name:'Guitar',icon:'🎸',cat:'Music',level:1,xp:0,goal:'Learn basic chords',sessions:0,totalMin:0},
+  {id:3,name:'Coding',icon:'💻',cat:'Tech',level:2,xp:320,goal:'Build a full-stack app',sessions:14,totalMin:840},
+  {id:4,name:'Spanish',icon:'🇪🇸',cat:'Language',level:1,xp:0,goal:'Hold a basic conversation',sessions:0,totalMin:0},
+  {id:5,name:'Fitness',icon:'💪',cat:'Health',level:2,xp:280,goal:'Hit 175lbs & bench 225',sessions:12,totalMin:660},
+  {id:6,name:'Drawing',icon:'✏️',cat:'Art',level:1,xp:0,goal:'Draw portraits',sessions:0,totalMin:0},
+  {id:7,name:'Cooking',icon:'👨‍🍳',cat:'Life',level:1,xp:40,goal:'Cook 3 new recipes/week',sessions:2,totalMin:80},
+  {id:8,name:'Reading',icon:'📚',cat:'Mind',level:1,xp:60,goal:'12 books this year',sessions:3,totalMin:180},
+];
+const SEED_GOALS_HEALTH=[
+  {id:1,name:'Hit 175lbs',icon:'⚖️',current:182,target:175,unit:'lbs',xp:100},
+  {id:2,name:'Run 5K under 28min',icon:'🏃',current:32,target:28,unit:'min',xp:150},
+  {id:3,name:'Bench 225×5',icon:'🏋️',current:185,target:225,unit:'lbs',xp:200},
+  {id:4,name:'8 workouts/month',icon:'📅',current:3,target:8,unit:'workouts',xp:100},
+];
+const SLEEP_DATA=[
+  {day:'Sun',hours:7.5},{day:'Mon',hours:6},{day:'Tue',hours:7},{day:'Wed',hours:8},{day:'Thu',hours:6.5},{day:'Fri',hours:7},{day:'Sat',hours:8.5},
+];
+const STEP_DATA=[
+  {day:'Sat',steps:5568},{day:'Sun',steps:7324},{day:'Mon',steps:5125},{day:'Tue',steps:10109},{day:'Wed',steps:2921},{day:'Thu',steps:4585},{day:'Fri',steps:4996},
+];
+const SCHEDULES=[
+  {id:1,name:'NYC Office Day',color:'#555',blocks:[
+    {label:'Sleep',start:0,end:7,color:'#6b5fa0'},{label:'Commute',start:7,end:9,color:'#b07820'},
+    {label:'Work',start:9,end:17,color:'#2a8080'},{label:'Commute',start:17,end:19,color:'#b07820'},
+    {label:'Skills',start:19,end:22,color:'#208050'},{label:'Wind down',start:22,end:24,color:'#555'},
+  ]},
+  {id:2,name:'Work From Home',color:'#555',blocks:[
+    {label:'Sleep',start:0,end:8,color:'#6b5fa0'},{label:'Morning',start:8,end:9,color:'#b07820'},
+    {label:'Work',start:9,end:17,color:'#2a8080'},{label:'Skills',start:17,end:21,color:'#208050'},
+    {label:'Wind down',start:21,end:24,color:'#555'},
+  ]},
+  {id:3,name:'Day Off',color:'#555',blocks:[
+    {label:'Sleep',start:0,end:9,color:'#6b5fa0'},{label:'Morning',start:9,end:12,color:'#b07820'},
+    {label:'Skills',start:13,end:17,color:'#208050'},{label:'Evening',start:17,end:22,color:'#2a8080'},
+    {label:'Wind down',start:22,end:24,color:'#555'},
+  ]},
+];
+
+// ─── Theme definitions ───────────────────────────────────────────────────────
+const THEMES=[
+  {id:'minimal',label:'Minimal',emoji:'⬜',dark:false},
+  {id:'dusk',label:'Dusk',emoji:'🌆',dark:true},
+  {id:'slate',label:'Slate',emoji:'🌑',dark:true},
+  {id:'ember',label:'Ember',emoji:'🔥',dark:true},
+  {id:'ocean',label:'Ocean',emoji:'🌊',dark:true},
+  {id:'sage',label:'Sage',emoji:'🌿',dark:true},
+  {id:'rose',label:'Rose',emoji:'🌸',dark:true},
+  {id:'mint',label:'Mint',emoji:'🫧',dark:false},
+  {id:'breeze',label:'Breeze',emoji:'🌬️',dark:false},
+  {id:'sand',label:'Sand',emoji:'🏜️',dark:false},
+];
+
+// ─── Utility ─────────────────────────────────────────────────────────────────
+const fmt$=(n)=>'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtDate=(d)=>new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const TITLES=['Rookie','Apprentice','Journeyman','Skilled','Expert','Master','Elite','Legend','Mythic','Godmode'];
+const getTitle=(xp)=>TITLES[Math.min(Math.floor(xp/1000),TITLES.length-1)];
+const getLvl=(xp,pxp=500)=>Math.floor(xp/pxp)+1;
+const getXpPct=(xp,pxp=500)=>((xp%pxp)/pxp)*100;
+
+// ─── Shared Components ────────────────────────────────────────────────────────
+function ProgBar({pct,height=6,color}){
+  return <div className="prog-wrap" style={{height}}>
+    <div className="prog-bar" style={{width:pct+'%',background:color||undefined}}/>
+  </div>;
+}
+
+function SimpleBarChart({data,getVal,getLabel,goal}){
+  const max=Math.max(...data.map(getVal),goal||0);
+  return <div className="bar-chart">
+    {data.map((d,i)=>{
+      const v=getVal(d);
+      const pct=(v/max)*100;
+      const hit=goal&&v>=goal;
+      return <div key={i} className="bar-col">
+        <div className="bar-fill" style={{height:pct+'%',background:hit?'#22a060':undefined}}/>
+        <div className="bar-lbl">{getLabel(d)}</div>
+      </div>;
+    })}
+  </div>;
+}
+
+function Toggle({checked,onChange}){
+  return <label className="toggle">
+    <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}/>
+    <div className="toggle-track"/>
+    <div className="toggle-thumb"/>
+  </label>;
+}
+
+function Modal({title,onClose,children}){
+  return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:200,display:'flex',alignItems:'flex-end'}} onClick={onClose}>
+    <div style={{background:'var(--bg)',borderRadius:'16px 16px 0 0',padding:'20px',width:'100%',maxHeight:'80vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <span style={{fontWeight:700,fontSize:17}}>{title}</span>
+        <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text3)'}}>✕</button>
+      </div>
+      {children}
+    </div>
+  </div>;
+}
+
+// ─── HOME TAB ─────────────────────────────────────────────────────────────────
+function HomeTab(){
+  const totalXp=2240;
+  const finXp=1240,hlthXp=680,lifeXp=320;
+  const title=getTitle(totalXp);
+  const lvl=getLvl(totalXp,1000);
+  const xpPct=((totalXp%1000)/1000)*100;
+  return <div className="pad">
+    {/* Profile hero */}
+    <div className="card" style={{textAlign:'center',padding:'24px 16px'}}>
+      <div style={{width:64,height:64,borderRadius:'50%',background:'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 10px'}}>🧑</div>
+      <div style={{fontWeight:700,fontSize:20}}>Mack</div>
+      <div style={{color:'var(--text3)',fontSize:13,marginBottom:12}}>Stroudsburg, PA · Level {lvl} {title}</div>
+      <div style={{fontSize:12,color:'var(--text3)',marginBottom:4}}>Total XP: {totalXp.toLocaleString()} / {Math.ceil(totalXp/1000)*1000}</div>
+      <ProgBar pct={xpPct}/>
+    </div>
+
+    {/* Pillar cards */}
+    <div className="stat-grid-3">
+      {[{label:'Finance',xp:finXp,icon:'💰',pxp:500},{label:'Health',xp:hlthXp,icon:'❤️',pxp:500},{label:'Life',xp:lifeXp,icon:'🌱',pxp:500}].map(p=>(
+        <div key={p.label} className="stat-box">
+          <div style={{fontSize:22}}>{p.icon}</div>
+          <div style={{fontSize:11,fontWeight:700,marginTop:4}}>{p.label}</div>
+          <div style={{fontSize:12,color:'var(--text3)'}}>Lvl {getLvl(p.xp,p.pxp)}</div>
+          <ProgBar pct={getXpPct(p.xp,p.pxp)} height={4}/>
+          <div style={{fontSize:10,color:'var(--text3)'}}>{p.xp} XP</div>
+        </div>
+      ))}
+    </div>
+
+    {/* Daily goals */}
+    <div className="section-head">Daily Goals</div>
+    <div className="card">
+      {[{label:'Log a workout',done:false,xp:20},{label:'Hit 10k steps',done:true,xp:10},{label:'Log all meals',done:false,xp:15},{label:'Review spending',done:false,xp:5}].map((g,i)=>(
+        <div key={i} className="list-item" style={{gap:10}}>
+          <div style={{width:20,height:20,borderRadius:4,border:'1px solid var(--border)',background:g.done?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'var(--accent-fg)',flexShrink:0}}>
+            {g.done?'✓':''}
+          </div>
+          <span style={{flex:1,fontSize:14,textDecoration:g.done?'line-through':'none',color:g.done?'var(--text3)':'var(--text)'}}>{g.label}</span>
+          <span style={{fontSize:11,color:'var(--text3)'}}>+{g.xp} XP</span>
+        </div>
+      ))}
+    </div>
+
+    {/* Recent activity */}
+    <div className="section-head">Recent Activity</div>
+    <div className="card" style={{padding:0}}>
+      {[
+        {icon:'💪',text:'Logged upper body workout',meta:'May 22 · +25 XP'},
+        {icon:'🏃',text:'Morning run — 5K',meta:'May 20 · +20 XP'},
+        {icon:'💻',text:'Coding session — 1h 20m',meta:'May 19 · +40 XP'},
+        {icon:'📈',text:'Robinhood transfer — $500',meta:'May 22 · Finance'},
+        {icon:'🍔',text:'Logged lunch & dinner',meta:'May 21 · +8 XP'},
+      ].map((a,i)=>(
+        <div key={i} className="feed-item" style={{padding:'10px 14px'}}>
+          <div className="feed-icon">{a.icon}</div>
+          <div><div className="feed-text">{a.text}</div><div className="feed-meta">{a.meta}</div></div>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
+// ─── FINANCE TAB ──────────────────────────────────────────────────────────────
+function FinanceTab(){
+  const [sub,setSub]=useState('overview');
+  const tabs=['overview','spending','history','automations','transactions','accounts'];
+  return <>
+    <div className="sub-nav">
+      {tabs.map(t=><button key={t} className={`sub-tab${sub===t?' active':''}`} onClick={()=>setSub(t)}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+    </div>
+    {sub==='overview'&&<FinanceOverview/>}
+    {sub==='spending'&&<FinanceSpending/>}
+    {sub==='history'&&<FinanceHistory/>}
+    {sub==='automations'&&<FinanceAutomations/>}
+    {sub==='transactions'&&<FinanceTransactions/>}
+    {sub==='accounts'&&<FinanceAccounts/>}
+  </>;
+}
+
+function FinanceOverview(){
+  const income=1773.95+1557.86;
+  const expenses=297.54+29.99+389+926.29+60+20+10.59+134.22;
+  return <div className="pad">
+    <div className="stat-grid">
+      <div className="stat-box"><div className="stat-val" style={{color:'#22a060'}}>{fmt$(income)}</div><div className="stat-lbl">May Income</div></div>
+      <div className="stat-box"><div className="stat-val" style={{color:'#d04040'}}>{fmt$(-expenses)}</div><div className="stat-lbl">May Expenses</div></div>
+    </div>
+
+    <div className="section-head">PenFed Accounts</div>
+    {SEED_ACCOUNTS.map(a=>(
+      <div key={a.id} className="card-flat" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <div>
+          <div style={{fontWeight:600,fontSize:14}}>{a.name}</div>
+          <div style={{fontSize:12,color:'var(--text3)'}}>{a.type}</div>
+        </div>
+        <div style={{fontWeight:700,fontSize:16}}>{fmt$(a.balance)}</div>
+      </div>
+    ))}
+
+    <div className="section-head">Budget Snapshot</div>
+    {BUDGET_CATS.slice(0,5).map(b=>{
+      const pct=Math.min((b.spent/b.budget)*100,100);
+      const over=b.spent>b.budget;
+      return <div key={b.name} style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:3}}>
+          <span>{b.icon} {b.name}</span>
+          <span style={{color:over?'#d04040':'var(--text3)'}}>{fmt$(b.spent)} / {fmt$(b.budget)}</span>
+        </div>
+        <ProgBar pct={pct} color={over?'#d04040':undefined}/>
+      </div>;
+    })}
+
+    <div className="section-head">Recent Transactions</div>
+    {SEED_TRANSACTIONS.slice(0,5).map(t=>(
+      <div key={t.id} className="list-item">
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <div className="feed-icon">{t.icon}</div>
+          <div><div style={{fontSize:13,fontWeight:500}}>{t.desc}</div><div style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(t.date)} · {t.cat}</div></div>
+        </div>
+        <div style={{fontWeight:600,fontSize:14,color:t.amount>0?'#22a060':'var(--text)'}}>{t.amount>0?'+':''}{fmt$(t.amount)}</div>
+      </div>
+    ))}
+  </div>;
+}
+
+function FinanceSpending(){
+  const total=BUDGET_CATS.reduce((s,c)=>s+c.spent,0);
+  const [sel,setSel]=useState(null);
+  const colors=['#555','#777','#999','#bbb','#ccc','#ddd','#aaa','#888','#666'];
+  let offset=0;
+  const slices=BUDGET_CATS.map((c,i)=>{
+    const pct=c.spent/total;
+    const angle=pct*360;
+    const s={...c,pct,angle,offset,color:colors[i]};
+    offset+=angle;
+    return s;
+  });
+  const r=60,cx=70,cy=70;
+  const toRad=d=>d*Math.PI/180;
+  const arc=(startDeg,endDeg)=>{
+    const x1=cx+r*Math.sin(toRad(startDeg));
+    const y1=cy-r*Math.cos(toRad(startDeg));
+    const x2=cx+r*Math.sin(toRad(endDeg));
+    const y2=cy-r*Math.cos(toRad(endDeg));
+    const large=endDeg-startDeg>180?1:0;
+    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+  };
+  return <div className="pad">
+    <div className="donut-wrap">
+      <svg viewBox="0 0 140 140" width="160" height="160">
+        {slices.map((s,i)=>(
+          <path key={i} d={arc(s.offset,s.offset+s.angle)} fill={s.color} opacity={sel===i?1:.7} onClick={()=>setSel(sel===i?null:i)} style={{cursor:'pointer'}}/>
+        ))}
+        <circle cx={cx} cy={cy} r={38} fill="var(--bg)"/>
+        <text x={cx} y={cy-4} textAnchor="middle" fontSize="10" fill="var(--text3)">Total</text>
+        <text x={cx} y={cy+10} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">{fmt$(total)}</text>
+      </svg>
+    </div>
+    {sel!==null&&(
+      <div className="card" style={{marginBottom:12}}>
+        <div style={{fontWeight:700}}>{slices[sel].icon} {slices[sel].name}</div>
+        <div style={{fontSize:13,color:'var(--text3)',marginTop:4}}>{fmt$(slices[sel].spent)} spent · {(slices[sel].pct*100).toFixed(1)}% of total</div>
+        <ProgBar pct={Math.min((slices[sel].spent/slices[sel].budget)*100,100)}/>
+        <div style={{fontSize:12,color:'var(--text3)'}}>Budget: {fmt$(slices[sel].budget)}</div>
+      </div>
+    )}
+    {BUDGET_CATS.map((b,i)=>(
+      <div key={b.name} className="list-item" style={{cursor:'pointer'}} onClick={()=>setSel(sel===i?null:i)}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:10,height:10,borderRadius:2,background:colors[i],flexShrink:0}}/>
+          <span style={{fontSize:14}}>{b.icon} {b.name}</span>
+        </div>
+        <span style={{fontSize:14,fontWeight:600}}>{fmt$(b.spent)}</span>
+      </div>
+    ))}
+  </div>;
+}
+
+function FinanceHistory(){
+  const [year,setYear]=useState('2025');
+  const monthly=[
+    {m:'Jan',v:4200},{m:'Feb',v:3800},{m:'Mar',v:5100},{m:'Apr',v:4400},{m:'May',v:6200},
+    {m:'Jun',v:4100},{m:'Jul',v:3900},{m:'Aug',v:4600},{m:'Sep',v:4300},{m:'Oct',v:7800},{m:'Nov',v:8200},{m:'Dec',v:5500},
+  ];
+  const monthly26=[
+    {m:'Jan',v:4800},{m:'Feb',v:4200},{m:'Mar',v:4600},{m:'Apr',v:5100},{m:'May',v:5800},
+    {m:'Jun',v:0},{m:'Jul',v:0},{m:'Aug',v:0},{m:'Sep',v:0},{m:'Oct',v:0},{m:'Nov',v:0},{m:'Dec',v:0},
+  ];
+  const data=year==='2025'?monthly:monthly26;
+  return <div className="pad">
+    <div style={{display:'flex',gap:8,marginBottom:16}}>
+      {['2025','2026'].map(y=><button key={y} className={`btn btn-sm${year===y?' btn-primary':''}`} onClick={()=>setYear(y)}>{y}</button>)}
+    </div>
+    <div className="section-head">Monthly Spending</div>
+    <div className="card">
+      <SimpleBarChart data={data} getVal={d=>d.v} getLabel={d=>d.m}/>
+    </div>
+    <div className="section-head">Annual Breakdown</div>
+    {[
+      {name:'Investing',icon:'📈',val:20715},{name:'Transport',icon:'🚌',val:9510},
+      {name:'Rent',icon:'🏠',val:12000},{name:'Groceries',icon:'🛒',val:2525},
+      {name:'Entertainment',icon:'🎮',val:1350},{name:'Gas',icon:'⛽',val:660},
+      {name:'Dining',icon:'🍔',val:648},{name:'Shopping',icon:'🛍️',val:788},
+      {name:'Gym',icon:'💪',val:360},
+    ].map(c=>(
+      <div key={c.name} className="list-item">
+        <span style={{fontSize:14}}>{c.icon} {c.name}</span>
+        <span style={{fontWeight:600}}>{fmt$(c.val)}</span>
+      </div>
+    ))}
+  </div>;
+}
+
+function FinanceAutomations(){
+  const [sub,setSub]=useState('overview');
+  const autos=[
+    {name:'Robinhood $50/wk',icon:'📈',freq:'Weekly',amt:50,on:true},
+    {name:'Robinhood $75 biweekly',icon:'📈',freq:'Biweekly',amt:75,on:true},
+    {name:'Robinhood $500/mo',icon:'📈',freq:'Monthly',amt:500,on:true},
+    {name:'Rent $1,000/mo',icon:'🏠',freq:'Monthly',amt:1000,on:true},
+    {name:'Honda Financial',icon:'🚗',freq:'Monthly',amt:297.54,on:true},
+    {name:'Muscle Inc',icon:'💪',freq:'Monthly',amt:29.99,on:true},
+    {name:'Patreon',icon:'🎭',freq:'Monthly',amt:10.59,on:true},
+    {name:'Martz Bus Pass',icon:'🚌',freq:'Monthly',amt:30,on:true},
+  ];
+  const contributed=0;
+  const rothLimit=7000;
+  const rothPct=(contributed/rothLimit)*100;
+  return <div className="pad">
+    <div style={{display:'flex',gap:6,marginBottom:12}}>
+      {['overview','investing','roth','bills'].map(s=><button key={s} className={`btn btn-sm${sub===s?' btn-primary':''}`} onClick={()=>setSub(s)}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
+    </div>
+    {sub==='overview'&&autos.map((a,i)=>(
+      <div key={i} className="list-item">
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <div className="feed-icon">{a.icon}</div>
+          <div><div style={{fontSize:14,fontWeight:500}}>{a.name}</div><div style={{fontSize:11,color:'var(--text3)'}}>{a.freq}</div></div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontWeight:600}}>{fmt$(a.amt)}</span>
+          <Toggle checked={a.on} onChange={()=>{}}/>
+        </div>
+      </div>
+    ))}
+    {sub==='investing'&&<>
+      <div className="section-head">Robinhood Automations</div>
+      {[{label:'Weekly',amt:50},{label:'Biweekly',amt:75},{label:'Monthly',amt:500}].map(r=>(
+        <div key={r.label} className="card-flat" style={{display:'flex',justifyContent:'space-between'}}>
+          <span style={{fontSize:14}}>{r.label}</span><span style={{fontWeight:600}}>{fmt$(r.amt)}</span>
+        </div>
+      ))}
+      <div className="section-head">10-Year Projection (8% avg)</div>
+      <div className="card">
+        {[1,3,5,10].map(y=>{
+          const monthly=(50*4.33)+(75*2.17)+500;
+          const val=monthly*12*y*(1+0.08*y/2);
+          return <div key={y} className="list-item"><span style={{fontSize:14}}>{y} year{y>1?'s':''}</span><span style={{fontWeight:600}}>{fmt$(val)}</span></div>;
+        })}
+      </div>
+    </>}
+    {sub==='roth'&&<>
+      <div className="section-head">Roth IRA Tracker</div>
+      <div className="card">
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+          <span style={{fontSize:14}}>2026 Contribution</span>
+          <span style={{fontWeight:700,fontSize:18}}>{fmt$(contributed)}</span>
+        </div>
+        <ProgBar pct={rothPct}/>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--text3)',marginTop:4}}>
+          <span>{fmt$(contributed)} contributed</span><span>{fmt$(rothLimit)} limit</span>
+        </div>
+        <div style={{marginTop:12,fontSize:13,color:'var(--text3)'}}>Deadline: Apr 15, 2027 · Weekly need: {fmt$((rothLimit-contributed)/46)}/wk</div>
+      </div>
+    </>}
+    {sub==='bills'&&<>
+      <div className="section-head">Monthly Bills</div>
+      {[{n:'Rent',icon:'🏠',amt:1000},{n:'Honda Financial',icon:'🚗',amt:297.54},{n:'Muscle Inc',icon:'💪',amt:29.99},{n:'Patreon',icon:'🎭',amt:10.59},{n:'Martz Bus',icon:'🚌',amt:30}].map(b=>(
+        <div key={b.n} className="list-item">
+          <span style={{fontSize:14}}>{b.icon} {b.n}</span>
+          <span style={{fontWeight:600}}>{fmt$(b.amt)}</span>
+        </div>
+      ))}
+      <div style={{marginTop:12,padding:'12px 0',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'space-between',fontWeight:700}}>
+        <span>Monthly Total</span><span>{fmt$(1367.58)}</span>
+      </div>
+    </>}
+  </div>;
+}
+
+function FinanceTransactions(){
+  const [filter,setFilter]=useState('All');
+  const cats=['All','Income','Investing','Transport','Bills','Health','Pets'];
+  const filtered=filter==='All'?SEED_TRANSACTIONS:SEED_TRANSACTIONS.filter(t=>t.cat===filter);
+  return <div className="pad">
+    <div style={{overflowX:'auto',display:'flex',gap:6,marginBottom:12,paddingBottom:4}}>
+      {cats.map(c=><button key={c} className={`btn btn-sm${filter===c?' btn-primary':''}`} onClick={()=>setFilter(c)}>{c}</button>)}
+    </div>
+    {filtered.map(t=>(
+      <div key={t.id} className="list-item">
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <div className="feed-icon">{t.icon}</div>
+          <div><div style={{fontSize:13,fontWeight:500}}>{t.desc}</div><div style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(t.date)} · {t.cat}</div></div>
+        </div>
+        <div style={{fontWeight:600,color:t.amount>0?'#22a060':'var(--text)'}}>{t.amount>0?'+':''}{fmt$(t.amount)}</div>
+      </div>
+    ))}
+  </div>;
+}
+
+function FinanceAccounts(){
+  return <div className="pad">
+    <div className="section-head">PenFed (Live)</div>
+    {SEED_ACCOUNTS.map(a=>(
+      <div key={a.id} className="card">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div><div style={{fontWeight:700}}>{a.name}</div><div style={{fontSize:12,color:'var(--text3)'}}>{a.type} · Synced May 28</div></div>
+          <div style={{fontWeight:700,fontSize:18}}>{fmt$(a.balance)}</div>
+        </div>
+      </div>
+    ))}
+    <div className="section-head">Connected (Syncing)</div>
+    {['Chase','Apple Card','Fidelity','Robinhood'].map(n=>(
+      <div key={n} className="card-flat" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{fontSize:14}}>{n}</span>
+        <span className="pill">Syncing</span>
+      </div>
+    ))}
+    <div style={{marginTop:12,fontSize:12,color:'var(--text3)',lineHeight:1.5}}>Chase, Apple Card, Fidelity, and Robinhood are connected via Era Context but balances may take time to appear.</div>
+  </div>;
+}
+
+// ─── HEALTH TAB ───────────────────────────────────────────────────────────────
+function HealthTab(){
+  const [sub,setSub]=useState('dashboard');
+  const tabs=['dashboard','live','workouts','nutrition','goals'];
+  return <>
+    <div className="sub-nav">
+      {tabs.map(t=><button key={t} className={`sub-tab${sub===t?' active':''}`} onClick={()=>setSub(t)}>{t==='live'?'📡 Live':t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+    </div>
+    {sub==='dashboard'&&<HealthDashboard/>}
+    {sub==='live'&&<HealthLive/>}
+    {sub==='workouts'&&<HealthWorkouts/>}
+    {sub==='nutrition'&&<HealthNutrition/>}
+    {sub==='goals'&&<HealthGoals/>}
+  </>;
+}
+
+function HealthDashboard(){
+  const [hydration,setHydration]=useState(load('lt_h_hydration',0));
+  const saveHydration=v=>{setHydration(v);save('lt_h_hydration',v);};
+  return <div className="pad">
+    <div className="stat-grid-3">
+      {[{v:'4,996',l:'Steps'},{v:'200',l:'Active Cal'},{v:'7.0h',l:'Sleep'},{v:'180g',l:'Protein'},{v:hydration+'/8',l:'Hydration'},{v:'1/4',l:'Goals'}].map((s,i)=>(
+        <div key={i} className="stat-box"><div className="stat-val" style={{fontSize:16}}>{s.v}</div><div className="stat-lbl">{s.l}</div></div>
+      ))}
+    </div>
+
+    <div className="section-head">Hydration</div>
+    <div className="card">
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
+        {Array.from({length:8}).map((_,i)=>(
+          <div key={i} onClick={()=>saveHydration(i<hydration?i:i+1)} style={{width:36,height:36,borderRadius:4,border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,cursor:'pointer',background:i<hydration?'var(--accent)':'var(--surface)',transition:'background .2s'}}>
+            💧
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:12,color:'var(--text3)'}}>{hydration}/8 glasses · {hydration>=8?'+10 XP earned':''}</div>
+    </div>
+
+    <div className="section-head">Sleep Log</div>
+    <div className="card">
+      <div style={{display:'flex',gap:6,marginBottom:8}}>
+        {SLEEP_DATA.map((d,i)=>(
+          <div key={i} style={{flex:1,textAlign:'center'}}>
+            <div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>{d.day}</div>
+            <div style={{height:40,background:'var(--surface2)',borderRadius:4,position:'relative',overflow:'hidden'}}>
+              <div style={{position:'absolute',bottom:0,left:0,right:0,height:((d.hours-4)/6)*100+'%',background:d.hours>=7?'var(--accent)':d.hours>=6?'#aa8820':'#d04040',transition:'height .3s'}}/>
+            </div>
+            <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>{d.hours}h</div>
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:12,color:'var(--text3)'}}>7-day avg: 7.2h · Target: 8h</div>
+    </div>
+  </div>;
+}
+
+function HealthLive(){
+  const avgSteps=Math.round(STEP_DATA.reduce((s,d)=>s+d.steps,0)/7);
+  const daysHit=STEP_DATA.filter(d=>d.steps>=10000).length;
+  return <div className="pad">
+    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:12}}>
+      <span className="pill pill-accent">● Live</span>
+      <span style={{fontSize:12,color:'var(--text3)'}}>Apple Health · Synced today</span>
+    </div>
+    <div className="stat-grid">
+      <div className="stat-box"><div className="stat-val">{avgSteps.toLocaleString()}</div><div className="stat-lbl">Avg Steps/Day</div></div>
+      <div className="stat-box"><div className="stat-val">{daysHit}/7</div><div className="stat-lbl">Days Hit 10k</div></div>
+    </div>
+    <div className="section-head">7-Day Steps</div>
+    <div className="card">
+      <SimpleBarChart data={STEP_DATA} getVal={d=>d.steps} getLabel={d=>d.day} goal={10000}/>
+      <div style={{fontSize:11,color:'var(--text3)',marginTop:8}}>Green = hit 10k goal</div>
+    </div>
+    <div className="section-head">Apple Health Data</div>
+    {STEP_DATA.map((d,i)=>(
+      <div key={i} className="list-item">
+        <span style={{fontSize:14}}>{d.day}</span>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontWeight:600,fontSize:14,color:d.steps>=10000?'#22a060':'var(--text)'}}>{d.steps.toLocaleString()} steps</div>
+        </div>
+      </div>
+    ))}
+  </div>;
+}
+
+function HealthWorkouts(){
+  const [workouts,setWorkouts]=useState(load('lt_h_workouts',SEED_WORKOUTS));
+  const [adding,setAdding]=useState(false);
+  const [form,setForm]=useState({type:'Strength',duration:30,notes:''});
+  const types=[{n:'Strength',i:'🏋️',xp:25},{n:'Cardio',i:'🏃',xp:20},{n:'HIIT',i:'⚡',xp:30},{n:'Yoga',i:'🧘',xp:20},{n:'Sports',i:'⚽',xp:20},{n:'Other',i:'💪',xp:20}];
+  const logWorkout=()=>{
+    const t=types.find(x=>x.n===form.type);
+    const w={id:Date.now(),type:form.type,icon:t.i,date:new Date().toISOString().split('T')[0],duration:form.duration,notes:form.notes,xp:t.xp};
+    const updated=[w,...workouts];setWorkouts(updated);save('lt_h_workouts',updated);setAdding(false);
+  };
+  return <div className="pad">
+    <button className="btn btn-primary" style={{width:'100%',marginBottom:12}} onClick={()=>setAdding(true)}>+ Log Workout</button>
+    {workouts.map(w=>(
+      <div key={w.id} className="card">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div style={{display:'flex',gap:10}}>
+            <div className="feed-icon" style={{fontSize:20}}>{w.icon}</div>
+            <div>
+              <div style={{fontWeight:600}}>{w.type}</div>
+              <div style={{fontSize:12,color:'var(--text3)'}}>{fmtDate(w.date)} · {w.duration} min</div>
+              {w.notes&&<div style={{fontSize:12,color:'var(--text2)',marginTop:4}}>{w.notes}</div>}
+            </div>
+          </div>
+          <span className="pill">+{w.xp} XP</span>
+        </div>
+      </div>
+    ))}
+    {adding&&<Modal title="Log Workout" onClose={()=>setAdding(false)}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+        {types.map(t=><button key={t.n} className={`btn${form.type===t.n?' btn-primary':''}`} onClick={()=>setForm({...form,type:t.n})} style={{flexDirection:'column',gap:4,padding:'10px 4px'}}>
+          <span style={{fontSize:20}}>{t.i}</span><span style={{fontSize:11}}>{t.n}</span>
+        </button>)}
+      </div>
+      <label className="label">Duration (min)</label>
+      <input className="field" type="number" value={form.duration} onChange={e=>setForm({...form,duration:+e.target.value})} style={{marginBottom:10}}/>
+      <label className="label">Notes</label>
+      <input className="field" placeholder="Optional notes..." value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} style={{marginBottom:14}}/>
+      <button className="btn btn-primary" style={{width:'100%'}} onClick={logWorkout}>Save Workout</button>
+    </Modal>}
+  </div>;
+}
+
+function HealthNutrition(){
+  const targets={calories:2400,protein:180,carbs:250,fat:70};
+  const logged={calories:1820,protein:142,carbs:198,fat:52};
+  const macros=[
+    {n:'Calories',unit:'kcal',t:targets.calories,v:logged.calories},
+    {n:'Protein',unit:'g',t:targets.protein,v:logged.protein},
+    {n:'Carbs',unit:'g',t:targets.carbs,v:logged.carbs},
+    {n:'Fat',unit:'g',t:targets.fat,v:logged.fat},
+  ];
+  return <div className="pad">
+    <div className="section-head">Today's Macros</div>
+    {macros.map(m=>(
+      <div key={m.n} className="card-flat" style={{marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:14,marginBottom:4}}>
+          <span>{m.n}</span>
+          <span style={{fontWeight:600}}>{m.v} / {m.t} {m.unit}</span>
+        </div>
+        <ProgBar pct={(m.v/m.t)*100}/>
+      </div>
+    ))}
+    <div className="section-head">Meal Log</div>
+    {[
+      {meal:'Breakfast',items:['Oatmeal','Banana','Protein shake'],cal:520},
+      {meal:'Lunch',items:['Chicken rice bowl','Broccoli'],cal:680},
+      {meal:'Snack',items:['Greek yogurt','Almonds'],cal:310},
+      {meal:'Dinner',items:['Salmon','Sweet potato','Salad'],cal:310},
+    ].map((m,i)=>(
+      <div key={i} className="list-item">
+        <div>
+          <div style={{fontWeight:500,fontSize:14}}>{m.meal}</div>
+          <div style={{fontSize:11,color:'var(--text3)'}}>{m.items.join(' · ')}</div>
+        </div>
+        <span style={{fontSize:13,color:'var(--text3)'}}>{m.cal} kcal</span>
+      </div>
+    ))}
+    <button className="btn" style={{width:'100%',marginTop:12}}>+ Log Meal</button>
+  </div>;
+}
+
+function HealthGoals(){
+  return <div className="pad">
+    {SEED_GOALS_HEALTH.map(g=>{
+      const pct=g.name.includes('Hit')
+        ? Math.max(0,((g.target-(g.current-g.target))/(g.target))*100)
+        : Math.min((g.current/g.target)*100,100);
+      const progress=g.name.includes('Hit')?`${g.current} → ${g.target} ${g.unit}`:`${g.current} / ${g.target} ${g.unit}`;
+      return <div key={g.id} className="card">
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:22}}>{g.icon}</span>
+            <div><div style={{fontWeight:600}}>{g.name}</div><div style={{fontSize:12,color:'var(--text3)'}}>{progress}</div></div>
+          </div>
+          <span className="pill">+{g.xp} XP</span>
+        </div>
+        <ProgBar pct={pct}/>
+      </div>;
+    })}
+    <button className="btn" style={{width:'100%',marginTop:4}}>+ Add Goal</button>
+  </div>;
+}
+
+// ─── LIFE TAB ─────────────────────────────────────────────────────────────────
+function LifeTab(){
+  const [sub,setSub]=useState('dashboard');
+  const tabs=['dashboard','schedule','sleep','skills'];
+  return <>
+    <div className="sub-nav">
+      {tabs.map(t=><button key={t} className={`sub-tab${sub===t?' active':''}`} onClick={()=>setSub(t)}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+    </div>
+    {sub==='dashboard'&&<LifeDashboard/>}
+    {sub==='schedule'&&<LifeSchedule/>}
+    {sub==='sleep'&&<LifeSleep/>}
+    {sub==='skills'&&<LifeSkills/>}
+  </>;
+}
+
+function LifeDashboard(){
+  return <div className="pad">
+    <div className="card" style={{textAlign:'center',padding:'20px 16px'}}>
+      <div style={{fontSize:13,color:'var(--text3)'}}>Life Agent</div>
+      <div style={{fontWeight:700,fontSize:20,margin:'4px 0'}}>Level 1 · 320 XP</div>
+      <ProgBar pct={(320/500)*100}/>
+      <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>180 XP to Level 2</div>
+    </div>
+    <div className="stat-grid-3">
+      <div className="stat-box"><div style={{fontSize:20}}>🏙️</div><div className="stat-lbl">NYC Office</div><div style={{fontSize:11,color:'var(--text3)'}}>Today</div></div>
+      <div className="stat-box"><div style={{fontSize:20}}>😴</div><div className="stat-lbl">7.0h</div><div style={{fontSize:11,color:'var(--text3)'}}>Last sleep</div></div>
+      <div className="stat-box"><div style={{fontSize:20}}>💡</div><div className="stat-lbl">29</div><div style={{fontSize:11,color:'var(--text3)'}}>Sessions</div></div>
+    </div>
+    <div className="section-head">Today's Schedule</div>
+    <div className="card" style={{padding:'8px 12px'}}>
+      <div style={{fontSize:12,fontWeight:600,marginBottom:6}}>NYC Office Day</div>
+      <div style={{height:20,display:'flex',borderRadius:4,overflow:'hidden'}}>
+        {SCHEDULES[0].blocks.map((b,i)=>{
+          const w=((b.end-b.start)/24)*100;
+          return <div key={i} title={b.label} style={{width:w+'%',background:b.color,opacity:.85}}/>;
+        })}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'var(--text3)',marginTop:4}}><span>12am</span><span>12pm</span><span>12am</span></div>
+    </div>
+    <div className="section-head">Top Skills</div>
+    {SEED_SKILLS.filter(s=>s.xp>0).slice(0,4).map(s=>(
+      <div key={s.id} className="list-item">
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <span style={{fontSize:20}}>{s.icon}</span>
+          <div>
+            <div style={{fontSize:14,fontWeight:500}}>{s.name}</div>
+            <div style={{fontSize:11,color:'var(--text3)'}}>Level {s.level} · {s.xp} XP</div>
+          </div>
+        </div>
+        <div style={{width:80}}><ProgBar pct={(s.xp%200)/200*100}/></div>
+      </div>
+    ))}
+  </div>;
+}
+
+function LifeSchedule(){
+  const [weekPlan,setWeekPlan]=useState(load('lt_life_week',{Mon:0,Tue:0,Wed:0,Thu:0,Fri:0,Sat:2,Sun:2}));
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  return <div className="pad">
+    <div className="section-head">Week Planner</div>
+    {days.map(d=>(
+      <div key={d} className="list-item">
+        <span style={{fontSize:14,fontWeight:500,width:36}}>{d}</span>
+        <div style={{flex:1,marginLeft:12}}>
+          <select className="field" style={{padding:'6px 10px'}} value={weekPlan[d]} onChange={e=>{const p={...weekPlan,[d]:+e.target.value};setWeekPlan(p);save('lt_life_week',p);}}>
+            {SCHEDULES.map((s,i)=><option key={i} value={i}>{s.name}</option>)}
+          </select>
+        </div>
+      </div>
+    ))}
+    <div className="section-head">Schedule Templates</div>
+    {SCHEDULES.map((s,i)=>(
+      <div key={i} className="card">
+        <div style={{fontWeight:600,marginBottom:8}}>{s.name}</div>
+        <div style={{height:16,display:'flex',borderRadius:4,overflow:'hidden',marginBottom:6}}>
+          {s.blocks.map((b,j)=>{
+            const w=((b.end-b.start)/24)*100;
+            return <div key={j} title={b.label} style={{width:w+'%',background:b.color}}/>;
+          })}
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {s.blocks.map((b,j)=>(
+            <div key={j} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'var(--text3)'}}>
+              <div style={{width:8,height:8,borderRadius:2,background:b.color}}/>
+              {b.label} ({b.end-b.start}h)
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>;
+}
+
+function LifeSleep(){
+  const [log,setLog]=useState(load('lt_life_sleep',[]));
+  const [hours,setHours]=useState(7);
+  const [quality,setQuality]=useState('good');
+  const addEntry=()=>{
+    const e={id:Date.now(),date:new Date().toISOString().split('T')[0],hours,quality};
+    const updated=[e,...log];setLog(updated);save('lt_life_sleep',updated);
+  };
+  return <div className="pad">
+    <div className="card">
+      <div style={{fontWeight:600,marginBottom:4}}>Target: Midnight bedtime</div>
+      <div style={{fontSize:13,color:'var(--text3)',marginBottom:12}}>Wake times: NYC Office 7am · WFH 8am · Day Off 9am</div>
+      <div style={{display:'flex',gap:6,marginBottom:8}}>
+        {SLEEP_DATA.map((d,i)=>(
+          <div key={i} style={{flex:1,textAlign:'center'}}>
+            <div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>{d.day}</div>
+            <div style={{height:60,background:'var(--surface2)',borderRadius:4,position:'relative',overflow:'hidden'}}>
+              <div style={{position:'absolute',bottom:0,left:0,right:0,height:((d.hours-4)/6)*100+'%',background:d.hours>=7?'var(--accent)':d.hours>=6?'#aa8820':'#d04040'}}/>
+            </div>
+            <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>{d.hours}h</div>
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:12,color:'var(--text3)'}}>7-day avg: 7.2h</div>
+    </div>
+    <div className="section-head">Log Sleep</div>
+    <div className="card">
+      <label className="label">Hours slept</label>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+        <button className="btn btn-sm" onClick={()=>setHours(Math.max(0,hours-.5))}>−</button>
+        <span style={{fontWeight:700,fontSize:20,flex:1,textAlign:'center'}}>{hours}h</span>
+        <button className="btn btn-sm" onClick={()=>setHours(Math.min(12,hours+.5))}>+</button>
+      </div>
+      <label className="label">Quality</label>
+      <div className="option-row" style={{marginBottom:12}}>
+        {['excellent','good','fair','poor'].map(q=><button key={q} className={`option-btn${quality===q?' selected':''}`} onClick={()=>setQuality(q)}>{q}</button>)}
+      </div>
+      <button className="btn btn-primary" style={{width:'100%'}} onClick={addEntry}>Log Sleep</button>
+    </div>
+    {log.length>0&&<>
+      <div className="section-head">History</div>
+      {log.map(e=>(
+        <div key={e.id} className="list-item">
+          <span style={{fontSize:14}}>{fmtDate(e.date)}</span>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:14,fontWeight:600}}>{e.hours}h</span>
+            <span className="pill" style={{fontSize:10}}>{e.quality}</span>
+          </div>
+        </div>
+      ))}
+    </>}
+  </div>;
+}
+
+function LifeSkills(){
+  const [skills,setSkills]=useState(load('lt_life_skills',SEED_SKILLS));
+  const [catFilter,setCatFilter]=useState('All');
+  const [detail,setDetail]=useState(null);
+  const [logging,setLogging]=useState(null);
+  const [logMin,setLogMin]=useState(30);
+  const [logNotes,setLogNotes]=useState('');
+  const cats=['All','Music','Tech','Language','Health','Art','Life','Mind'];
+  const filtered=catFilter==='All'?skills:skills.filter(s=>s.cat===catFilter);
+
+  const logSession=()=>{
+    const xp=Math.round(logMin*0.5);
+    const updated=skills.map(s=>s.id===logging.id?{...s,xp:s.xp+xp,sessions:s.sessions+1,totalMin:s.totalMin+logMin}:s);
+    setSkills(updated);save('lt_life_skills',updated);setLogging(null);setLogNotes('');setLogMin(30);
+  };
+
+  return <div className="pad">
+    <div style={{overflowX:'auto',display:'flex',gap:6,marginBottom:12}}>
+      {cats.map(c=><button key={c} className={`btn btn-sm${catFilter===c?' btn-primary':''}`} onClick={()=>setCatFilter(c)}>{c}</button>)}
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
+      {filtered.map(s=>(
+        <div key={s.id} className="card" style={{cursor:'pointer'}} onClick={()=>setDetail(s)}>
+          <div style={{fontSize:28,marginBottom:6}}>{s.icon}</div>
+          <div style={{fontWeight:600,fontSize:14}}>{s.name}</div>
+          <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Lvl {s.level} · {s.xp} XP</div>
+          <ProgBar pct={(s.xp%200)/200*100} height={4}/>
+          <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>{s.sessions} sessions</div>
+        </div>
+      ))}
+    </div>
+    {detail&&<Modal title={detail.icon+' '+detail.name} onClose={()=>setDetail(null)}>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:13,color:'var(--text3)'}}>Level {detail.level} · {detail.xp} XP · {detail.sessions} sessions</div>
+        <ProgBar pct={(detail.xp%200)/200*100}/>
+        <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Goal: {detail.goal}</div>
+      </div>
+      <div style={{fontSize:13,marginBottom:4}}>Total time: {Math.floor(detail.totalMin/60)}h {detail.totalMin%60}m</div>
+      <button className="btn btn-primary" style={{width:'100%'}} onClick={()=>{setLogging(detail);setDetail(null);}}>Log Session</button>
+    </Modal>}
+    {logging&&<Modal title={'Log — '+logging.name} onClose={()=>setLogging(null)}>
+      <label className="label">Duration (minutes)</label>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+        <button className="btn btn-sm" onClick={()=>setLogMin(Math.max(5,logMin-5))}>−</button>
+        <span style={{fontWeight:700,fontSize:20,flex:1,textAlign:'center'}}>{logMin} min</span>
+        <button className="btn btn-sm" onClick={()=>setLogMin(logMin+5)}>+</button>
+      </div>
+      <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>XP earned: +{Math.round(logMin*0.5)}</div>
+      <label className="label">Notes</label>
+      <input className="field" placeholder="What did you work on?" value={logNotes} onChange={e=>setLogNotes(e.target.value)} style={{marginBottom:14}}/>
+      <button className="btn btn-primary" style={{width:'100%'}} onClick={logSession}>Save Session</button>
+    </Modal>}
+  </div>;
+}
+
+// ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
+function SettingsTab({theme,setTheme,fontStyle,setFontStyle,density,setDensity,cardStyle,setCardStyle,radius,setRadius,emojiStyle,setEmojiStyle}){
+  return <div className="pad">
+    <div className="section-head">Color Theme</div>
+    <div className="card">
+      <div style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>Dark Themes</div>
+      <div className="theme-grid">
+        {THEMES.filter(t=>t.dark||t.id==='minimal').map(t=>(
+          <button key={t.id} className={`theme-btn${theme===t.id?' selected':''}`} onClick={()=>setTheme(t.id)}>
+            {t.emoji}<br/>{t.label}
+          </button>
+        ))}
+      </div>
+      <div style={{fontSize:12,color:'var(--text3)',margin:'12px 0 8px'}}>Light Themes</div>
+      <div className="theme-grid">
+        {THEMES.filter(t=>!t.dark&&t.id!=='minimal').map(t=>(
+          <button key={t.id} className={`theme-btn${theme===t.id?' selected':''}`} onClick={()=>setTheme(t.id)}>
+            {t.emoji}<br/>{t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="section-head">Text Style</div>
+    <div className="option-row">
+      {['rounded','sharp','mono','serif'].map(f=><button key={f} className={`option-btn${fontStyle===f?' selected':''}`} onClick={()=>setFontStyle(f)}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>)}
+    </div>
+
+    <div className="section-head">Density</div>
+    <div className="option-row">
+      {['compact','normal','spacious'].map(d=><button key={d} className={`option-btn${density===d?' selected':''}`} onClick={()=>setDensity(d)}>{d.charAt(0).toUpperCase()+d.slice(1)}</button>)}
+    </div>
+
+    <div className="section-head">Card Style</div>
+    <div className="option-row">
+      {['soft','flat','bordered','glass'].map(c=><button key={c} className={`option-btn${cardStyle===c?' selected':''}`} onClick={()=>setCardStyle(c)}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>)}
+    </div>
+
+    <div className="section-head">Corner Radius</div>
+    <div className="option-row">
+      {['sharp','medium','rounded','pill'].map(r=><button key={r} className={`option-btn${radius===r?' selected':''}`} onClick={()=>setRadius(r)}>{r.charAt(0).toUpperCase()+r.slice(1)}</button>)}
+    </div>
+
+    <div className="section-head">Emoji Style</div>
+    <div className="option-row">
+      {['on','minimal','off'].map(e=><button key={e} className={`option-btn${emojiStyle===e?' selected':''}`} onClick={()=>setEmojiStyle(e)}>{e.charAt(0).toUpperCase()+e.slice(1)}</button>)}
+    </div>
+
+    <div className="section-head">Profile</div>
+    <div className="card">
+      {[{l:'Name',v:'Mack'},{l:'Location',v:'Stroudsburg, PA'},{l:'Commute',v:'2h each way (NYC)'}].map(f=>(
+        <div key={f.l} className="setting-row">
+          <div><div className="setting-label">{f.l}</div><div className="setting-sub">{f.v}</div></div>
+        </div>
+      ))}
+    </div>
+
+    <div className="section-head">Agents</div>
+    <div className="card">
+      {[{n:'Finance',on:true},{n:'Health',on:true},{n:'Life',on:false,badge:'Coming soon'}].map(a=>(
+        <div key={a.n} className="setting-row">
+          <div><div className="setting-label">{a.n}</div>{a.badge&&<div className="setting-sub">{a.badge}</div>}</div>
+          {a.on?<Toggle checked={true} onChange={()=>{}}/>:<span className="pill">{a.badge||'Off'}</span>}
+        </div>
+      ))}
+    </div>
+
+    <div className="section-head">Data & Privacy</div>
+    <div className="card">
+      <button className="btn" style={{width:'100%',marginBottom:8}}>Export Data</button>
+      <button className="btn" style={{width:'100%',marginBottom:8}} onClick={()=>{save('lt_settings_theme','minimal');window.location.reload();}}>Reset Appearance</button>
+      <button className="btn" style={{width:'100%',color:'#d04040',borderColor:'#d04040'}} onClick={()=>{if(confirm('Clear all local data?')){localStorage.clear();window.location.reload();}}}>Clear All Data</button>
+    </div>
+
+    <div style={{height:20}}/>
+  </div>;
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+function App(){
+  const [tab,setTab]=useState('home');
+  const [theme,setThemeState]=useState(load('lt_settings_theme','minimal'));
+  const [fontStyle,setFontStyleState]=useState(load('lt_settings_font','rounded'));
+  const [density,setDensityState]=useState(load('lt_settings_density','normal'));
+  const [cardStyle,setCardStyleState]=useState(load('lt_settings_card','soft'));
+  const [radius,setRadiusState]=useState(load('lt_settings_radius','medium'));
+  const [emojiStyle,setEmojiStyleState]=useState(load('lt_settings_emoji','on'));
+
+  const setTheme=v=>{setThemeState(v);save('lt_settings_theme',v);};
+  const setFontStyle=v=>{setFontStyleState(v);save('lt_settings_font',v);};
+  const setDensity=v=>{setDensityState(v);save('lt_settings_density',v);};
+  const setCardStyle=v=>{setCardStyleState(v);save('lt_settings_card',v);};
+  const setRadius=v=>{setRadiusState(v);save('lt_settings_radius',v);};
+  const setEmojiStyle=v=>{setEmojiStyleState(v);save('lt_settings_emoji',v);};
+
+  const rootClass=[
+    'app',
+    theme!=='minimal'?`theme-${theme}`:'',
+    `font-${fontStyle}`,
+    `density-${density}`,
+    `radius-${radius}`,
+  ].filter(Boolean).join(' ');
+
+  const NAV=[
+    {id:'home',icon:'🏠',label:'Home'},
+    {id:'finance',icon:'💰',label:'Finance'},
+    {id:'health',icon:'❤️',label:'Health'},
+    {id:'life',icon:'🌱',label:'Life'},
+    {id:'settings',icon:'⚙️',label:'Settings'},
+  ];
+
+  const tabTitle={home:'Home',finance:'Finance',health:'Health',life:'Life',settings:'Settings'};
+
+  return <div id="root-inner" className={rootClass}>
+    <div className="page-header">
+      <div className="page-title">LifeTrack</div>
+      <div className="page-sub">{tabTitle[tab]}</div>
+    </div>
+    <div className="app-body">
+      {tab==='home'&&<HomeTab/>}
+      {tab==='finance'&&<FinanceTab/>}
+      {tab==='health'&&<HealthTab/>}
+      {tab==='life'&&<LifeTab/>}
+      {tab==='settings'&&<SettingsTab theme={theme} setTheme={setTheme} fontStyle={fontStyle} setFontStyle={setFontStyle} density={density} setDensity={setDensity} cardStyle={cardStyle} setCardStyle={setCardStyle} radius={radius} setRadius={setRadius} emojiStyle={emojiStyle} setEmojiStyle={setEmojiStyle}/>}
+    </div>
+    <nav className="bottom-nav">
+      {NAV.map(n=>(
+        <button key={n.id} className={`nav-item${tab===n.id?' active':''}`} onClick={()=>setTab(n.id)}>
+          <span className="nav-icon">{n.icon}</span>
+          <span>{n.label}</span>
+        </button>
+      ))}
+    </nav>
+  </div>;
+}
+
+// Apply root class to body wrapper
+const rootEl=document.getElementById('root');
+rootEl.style.cssText='height:100%;width:100%;';
+ReactDOM.createRoot(rootEl).render(<App/>);
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
