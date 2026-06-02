@@ -421,7 +421,18 @@ function FinanceTab(){
     <div className="sub-nav">
       {tabs.map(t=><button key={t} className={`sub-tab${sub===t?' active':''}`} onClick={()=>setSub(t)}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
     </div>
-    {sub==='overview'&&<FinanceOverview/>}
+    {sub==='overview'&&<>
+      <div style={{padding:'12px 16px 0'}}>
+        <a href="/finance-agent.html" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--radius)',textDecoration:'none',color:'var(--text)',marginBottom:4}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:32,height:32,borderRadius:8,background:'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🤖</div>
+            <div><div style={{fontWeight:600,fontSize:14}}>Finance Agent</div><div style={{fontSize:12,color:'var(--text3)'}}>Chat with your financial data</div></div>
+          </div>
+          <span style={{color:'var(--text3)',fontSize:16}}>›</span>
+        </a>
+      </div>
+      <FinanceOverview/>
+    </>}
     {sub==='spending'&&<FinanceSpending/>}
     {sub==='history'&&<FinanceHistory/>}
     {sub==='automations'&&<FinanceAutomations/>}

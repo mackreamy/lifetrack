@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Finance Agent</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   DESIGN TOKENS — tweak these to restyle the entire agent
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg:         #ffffff;
+  --surface:    #f7f7f7;
+  --surface2:   #efefef;
+  --border:     #e0e0e0;
+  --text:       #111111;
+  --text2:      #444444;
+  --text3:      #888888;
+  --accent:     #111111;
+  --accent-fg:  #ffffff;
+  --green:      #22a060;
+  --red:        #d04040;
+  --yellow:     #d08820;
+  --radius:     12px;
+  --font:       system-ui, -apple-system, sans-serif;
+}
+
+/* ── Dark theme preset ───────────────────────────────────
+   Uncomment to switch to dark mode:
+:root {
+  --bg: #1a1625; --surface: #231e33; --surface2: #2d2742;
+  --border: #3d3560; --text: #e8e0f5; --text2: #b8afd5;
+  --text3: #7a6fa0; --accent: #9b7fe8; --accent-fg: #fff;
+}
+── ─────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+/* ── Shell ─────────────────────────────────────────────── */
+.app          { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; }
+.header       { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.header-title { font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
+.header-sub   { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.status-row   { display: flex; align-items: center; gap: 6px; }
+.status-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* ── Metrics strip ─────────────────────────────────────── */
+.metrics      { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.metric       { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 8px; text-align: center; }
+.metric-val   { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.metric-lbl   { font-size: 10px; color: var(--text3); margin-top: 3px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Chat ──────────────────────────────────────────────── */
+.chat         { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.chat::-webkit-scrollbar { width: 0; }
+
+/* ── Bubbles ───────────────────────────────────────────── */
+.bubble       { max-width: 88%; padding: 12px 14px; border-radius: 16px; font-size: 14px; line-height: 1.55; }
+.bubble-agent { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; align-self: flex-start; }
+.bubble-user  { background: var(--accent); color: var(--accent-fg); border-bottom-right-radius: 4px; align-self: flex-end; }
+.bubble-name  { font-size: 11px; color: var(--text3); font-weight: 600; margin-bottom: 5px; }
+
+/* ── Rich content inside agent bubbles ─────────────────── */
+.data-table   { width: 100%; font-size: 13px; margin-top: 10px; border-collapse: collapse; }
+.data-table td { padding: 5px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+.data-table td:last-child { text-align: right; font-weight: 600; white-space: nowrap; padding-left: 8px; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table .sub { font-size: 11px; color: var(--text3); display: block; }
+.c-green  { color: var(--green); }
+.c-red    { color: var(--red);   }
+.c-yellow { color: var(--yellow); }
+.divider  { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; font-weight: 700; }
+
+/* ── Budget bars ───────────────────────────────────────── */
+.budget-row   { margin-bottom: 9px; }
+.budget-row:last-child { margin-bottom: 0; }
+.budget-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+.bar-wrap     { background: var(--surface2); border-radius: 999px; height: 5px; overflow: hidden; }
+.bar-fill     { height: 100%; border-radius: 999px; transition: width .3s; }
+
+/* ── Alert card ────────────────────────────────────────── */
+.alert-card   { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-top: 8px; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.alert-icon   { font-size: 16px; flex-shrink: 0; }
+
+/* ── Quick replies ─────────────────────────────────────── */
+.quick-wrap   { padding: 6px 16px 10px; display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; border-top: 1px solid var(--border); }
+.quick-lbl    { width: 100%; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.quick-btn    { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: border-color .15s, color .15s; font-family: var(--font); }
+.quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Typing indicator ──────────────────────────────────── */
+.typing       { display: flex; gap: 4px; align-items: center; padding: 2px 0; }
+.typing span  { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); animation: bounce .9s infinite; }
+.typing span:nth-child(2) { animation-delay: .15s; }
+.typing span:nth-child(3) { animation-delay: .30s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+/* ── Input bar ─────────────────────────────────────────── */
+.input-area   { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.input-field  { flex: 1; padding: 10px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 14px; outline: none; font-family: var(--font); }
+.input-field:focus { border-color: var(--accent); }
+.input-field::placeholder { color: var(--text3); }
+.send-btn     { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--font); transition: opacity .15s; }
+.send-btn:disabled { opacity: .35; cursor: default; }
+.send-btn:not(:disabled):active { opacity: .75; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ═══════════════════════════════════════════════════════════
+   DATA LAYER
+   Replace these arrays with real API calls or localStorage.
+   Each object shape is documented inline.
+   ═══════════════════════════════════════════════════════════ */
+
+const ACCOUNTS = [
+  // { id, name, type, balance }
+  { id: 1, name: 'BILLS ON BILLS',  type: 'Savings',     balance: 2958.31 },
+  { id: 2, name: 'MACKREAMY FUNDS', type: 'Checking',    balance: 2514.04 },
+  { id: 3, name: 'SPEND WISELY',    type: 'Credit Card', balance: 0.00   },
+];
+
+const TRANSACTIONS = [
+  // { id, date (YYYY-MM-DD), desc, amount (neg = expense), cat, icon }
+  { id:  1, date: '2026-05-25', desc: 'Mobile Deposit — Paycheck',  amount:  1773.95, cat: 'Income',        icon: '💵' },
+  { id:  2, date: '2026-05-22', desc: 'Robinhood Transfer',         amount:  -500.00, cat: 'Investing',     icon: '📈' },
+  { id:  3, date: '2026-05-20', desc: 'Honda Financial',            amount:  -297.54, cat: 'Transport',     icon: '🚗' },
+  { id:  4, date: '2026-05-19', desc: 'Muscle Inc',                 amount:   -29.99, cat: 'Health',        icon: '💪' },
+  { id:  5, date: '2026-05-18', desc: 'Smithfield Animal Hospital', amount:  -389.00, cat: 'Pets',          icon: '🐾' },
+  { id:  6, date: '2026-05-15', desc: 'Martz Transit',              amount:   -60.00, cat: 'Transport',     icon: '🚌' },
+  { id:  7, date: '2026-05-13', desc: 'Apple Credit Card Payment',  amount:  -926.29, cat: 'Bills',         icon: '💳' },
+  { id:  8, date: '2026-05-10', desc: 'Groceries',                  amount:  -134.22, cat: 'Groceries',     icon: '🛒' },
+  { id:  9, date: '2026-05-08', desc: 'FanDuel',                    amount:   -20.00, cat: 'Entertainment', icon: '🎲' },
+  { id: 10, date: '2026-05-06', desc: 'Mobile Deposit — Paycheck',  amount:  1557.86, cat: 'Income',        icon: '💵' },
+  { id: 11, date: '2026-05-05', desc: 'Patreon',                    amount:   -10.59, cat: 'Subscriptions', icon: '🎭' },
+];
+
+const BUDGET_CATS = [
+  // { name, icon, budget (monthly target), spent (actual) }
+  { name: 'Rent',          icon: '🏠', budget: 1000, spent: 1000 },
+  { name: 'Investing',     icon: '📈', budget: 2000, spent: 4393 },
+  { name: 'Transport',     icon: '🚌', budget:  800, spent:  752 },
+  { name: 'Bills',         icon: '💳', budget: 1200, spent:  926 },
+  { name: 'Groceries',     icon: '🛒', budget:  250, spent:  199 },
+  { name: 'Pets',          icon: '🐾', budget:  200, spent:  389 },
+  { name: 'Health',        icon: '💪', budget:   50, spent:   30 },
+  { name: 'Entertainment', icon: '🎮', budget:   80, spent:   60 },
+];
+
+const AUTOMATIONS = [
+  // { name, icon, freq, amt }
+  { name: 'Robinhood $50/wk',       icon: '📈', freq: 'Weekly',   amt:   50.00 },
+  { name: 'Robinhood $75 biweekly', icon: '📈', freq: 'Biweekly', amt:   75.00 },
+  { name: 'Robinhood $500/mo',      icon: '📈', freq: 'Monthly',  amt:  500.00 },
+  { name: 'Rent',                   icon: '🏠', freq: 'Monthly',  amt: 1000.00 },
+  { name: 'Honda Financial',        icon: '🚗', freq: 'Monthly',  amt:  297.54 },
+  { name: 'Muscle Inc',             icon: '💪', freq: 'Monthly',  amt:   29.99 },
+  { name: 'Patreon',                icon: '🎭', freq: 'Monthly',  amt:   10.59 },
+  { name: 'Martz Bus Pass',         icon: '🚌', freq: 'Monthly',  amt:   30.00 },
+];
+
+/* ── Config — update these to personalise the greeting ── */
+const CONFIG = {
+  name:   'Mack',
+  period: 'May 2026',
+  rothContributed: 0,
+  rothLimit:       7000,
+};
+
+/* ═══════════════════════════════════════════════════════════
+   DERIVED METRICS (computed once from the data above)
+   ═══════════════════════════════════════════════════════════ */
+const income       = TRANSACTIONS.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+const expenses     = TRANSACTIONS.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+const netCash      = income - expenses;
+const totalBalance = ACCOUNTS.reduce((s, a) => s + a.balance, 0);
+const totalAuto    = AUTOMATIONS.reduce((s, a) => s + a.amt, 0);
+const overBudget   = BUDGET_CATS.filter(c => c.spent > c.budget);
+
+/* ── Formatters ────────────────────────────────────────── */
+const fmt$    = n  => '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = d  => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const sign    = n  => (n >= 0 ? '+' : '-') + fmt$(n);
+
+/* ═══════════════════════════════════════════════════════════
+   AGENT INTENTS
+   Each intent matches user input → returns a message object.
+
+   Message shape:
+     text     string          — main response text
+     table    Array<Row>?     — key/value rows
+     budgets  Array<Cat>?     — renders budget bars
+     alerts   Array<string>?  — callout boxes
+     footer   string?         — summary line under table
+
+   Row shape: { label, value, sub?, pos? (true=green, false=red) }
+
+   To add a new intent:
+     1. Add a new { patterns, handler } object to INTENTS
+     2. handler() returns a message object
+   ═══════════════════════════════════════════════════════════ */
+const INTENTS = [
+  /* ── Greetings ─────────────────────────────────────────── */
+  {
+    patterns: ['hi', 'hello', 'hey', 'sup', "what's up", 'whats up', 'yo'],
+    handler: () => ({
+      text: `Hey ${CONFIG.name}! Here's a quick snapshot for ${CONFIG.period}:`,
+      table: [
+        { label: '💰 Total Balance', value: fmt$(totalBalance),      pos: true  },
+        { label: '📈 Monthly Income', value: fmt$(income),            pos: true  },
+        { label: '💸 Monthly Spent',  value: fmt$(expenses),          pos: false },
+        { label: '📊 Net Cash Flow',  value: sign(netCash), pos: netCash >= 0  },
+      ],
+      alerts: overBudget.length
+        ? [`You're over budget in ${overBudget.length} categor${overBudget.length === 1 ? 'y' : 'ies'}: ${overBudget.map(c => c.icon + ' ' + c.name).join(', ')}.`]
+        : [`All ${BUDGET_CATS.length} budget categories are on track. Nice work!`],
+    }),
+  },
+
+  /* ── Account balances ──────────────────────────────────── */
+  {
+    patterns: ['balance', 'account', 'accounts', 'how much do i have', 'net worth', 'total'],
+    handler: () => ({
+      text: `Here are your current account balances:`,
+      table: [
+        ...ACCOUNTS.map(a => ({ label: `🏦 ${a.name}`, value: fmt$(a.balance), sub: a.type, pos: true })),
+      ],
+      footer: `Total: ${fmt$(totalBalance)}`,
+    }),
+  },
+
+  /* ── Spending breakdown ────────────────────────────────── */
+  {
+    patterns: ['spend', 'spent', 'spending', 'expenses', 'expense', 'outgoing'],
+    handler: () => ({
+      text: `You spent ${fmt$(expenses)} this ${CONFIG.period} across ${TRANSACTIONS.filter(t => t.amount < 0).length} transactions. Top categories:`,
+      table: [...BUDGET_CATS]
+        .sort((a, b) => b.spent - a.spent)
+        .slice(0, 5)
+        .map(c => ({ label: `${c.icon} ${c.name}`, value: fmt$(c.spent) })),
+      footer: `Total expenses: ${fmt$(expenses)}`,
+    }),
+  },
+
+  /* ── Income ────────────────────────────────────────────── */
+  {
+    patterns: ['income', 'earn', 'salary', 'paycheck', 'paid', 'deposit', 'how much did i make'],
+    handler: () => ({
+      text: `You brought in ${fmt$(income)} this month (${TRANSACTIONS.filter(t => t.cat === 'Income').length} deposits):`,
+      table: TRANSACTIONS
+        .filter(t => t.cat === 'Income')
+        .map(t => ({ label: `${t.icon} ${t.desc}`, value: fmt$(t.amount), sub: fmtDate(t.date), pos: true })),
+    }),
+  },
+
+  /* ── Budget overview ───────────────────────────────────── */
+  {
+    patterns: ['budget', 'budgets', 'over budget', 'on track', 'on budget', 'how am i doing', 'categories'],
+    handler: () => ({
+      text: overBudget.length
+        ? `You're over budget in ${overBudget.length} categor${overBudget.length === 1 ? 'y' : 'ies'}. Here's the full picture:`
+        : `You're within budget across all categories! Here's the breakdown:`,
+      budgets: BUDGET_CATS,
+    }),
+  },
+
+  /* ── Investing ─────────────────────────────────────────── */
+  {
+    patterns: ['invest', 'investing', 'robinhood', 'stocks', 'portfolio', 'market', 'trading'],
+    handler: () => {
+      const investTotal = TRANSACTIONS.filter(t => t.cat === 'Investing').reduce((s, t) => s + Math.abs(t.amount), 0);
+      const monthlyAuto = AUTOMATIONS.filter(a => a.icon === '📈').reduce((s, a) => s + a.amt, 0);
+      return {
+        text: `You've moved ${fmt$(investTotal)} into investments this month — ${fmt$(investTotal - 2000)} above your $2k budget target. Your recurring automations:`,
+        table: AUTOMATIONS
+          .filter(a => a.icon === '📈')
+          .map(a => ({ label: `${a.icon} ${a.name}`, value: fmt$(a.amt), sub: a.freq })),
+        footer: `Auto monthly total: ~${fmt$(monthlyAuto)}`,
+      };
+    },
+  },
+
+  /* ── Roth IRA ──────────────────────────────────────────── */
+  {
+    patterns: ['roth', 'ira', 'retirement', 'roth ira'],
+    handler: () => ({
+      text: `Roth IRA tracker for ${new Date().getFullYear()}:`,
+      table: [
+        { label: '✅ Contributed',      value: fmt$(CONFIG.rothContributed) },
+        { label: '🎯 Annual Limit',     value: fmt$(CONFIG.rothLimit)       },
+        { label: '📋 Remaining',        value: fmt$(CONFIG.rothLimit - CONFIG.rothContributed), pos: false },
+        { label: '📅 Weekly needed',    value: fmt$((CONFIG.rothLimit - CONFIG.rothContributed) / 46) + '/wk' },
+      ],
+      alerts: [`Deadline: Apr 15, ${new Date().getFullYear() + 1}`],
+    }),
+  },
+
+  /* ── Bills & subscriptions ─────────────────────────────── */
+  {
+    patterns: ['bill', 'bills', 'subscription', 'subscriptions', 'recurring', 'automatic', 'automation'],
+    handler: () => ({
+      text: `Here are all your recurring automations:`,
+      table: AUTOMATIONS.map(a => ({ label: `${a.icon} ${a.name}`, value: fmt$(a.amt), sub: a.freq })),
+      footer: `Total: ${fmt$(totalAuto)}/mo`,
+    }),
+  },
+
+  /* ── Recent transactions ───────────────────────────────── */
+  {
+    patterns: ['transaction', 'transactions', 'recent', 'history', 'last', 'latest', 'what did i buy'],
+    handler: () => ({
+      text: `Here are your ${Math.min(8, TRANSACTIONS.length)} most recent transactions:`,
+      table: TRANSACTIONS.slice(0, 8).map(t => ({
+        label: `${t.icon} ${t.desc}`,
+        value: (t.amount > 0 ? '+' : '') + fmt$(t.amount),
+        sub:   `${fmtDate(t.date)} · ${t.cat}`,
+        pos:   t.amount > 0 ? true : undefined,
+      })),
+    }),
+  },
+
+  /* ── Cash flow / savings ───────────────────────────────── */
+  {
+    patterns: ['save', 'saving', 'savings', 'net', 'leftover', 'left over', 'cash flow', 'surplus', 'deficit'],
+    handler: () => ({
+      text: `Your ${CONFIG.period} cash flow summary:`,
+      table: [
+        { label: '💵 Total Income',   value: '+' + fmt$(income),   pos: true  },
+        { label: '💸 Total Expenses', value: '-' + fmt$(expenses), pos: false },
+        { label: '📊 Net Cash Flow',  value: sign(netCash), pos: netCash >= 0  },
+        { label: '🏦 Current Balance',value: fmt$(totalBalance),   pos: true  },
+      ],
+      alerts: netCash >= 0
+        ? [`You're cash-flow positive by ${fmt$(netCash)} this month!`]
+        : [`You're spending ${fmt$(Math.abs(netCash))} more than you earn this month.`],
+    }),
+  },
+
+  /* ── Pet expenses ──────────────────────────────────────── */
+  {
+    patterns: ['pet', 'pets', 'dog', 'cat', 'animal', 'vet'],
+    handler: () => {
+      const petTxns = TRANSACTIONS.filter(t => t.cat === 'Pets');
+      const petTotal = petTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
+      const petCat   = BUDGET_CATS.find(c => c.name === 'Pets');
+      return {
+        text: `Pet expenses this month:`,
+        table: petTxns.map(t => ({ label: `${t.icon} ${t.desc}`, value: fmt$(Math.abs(t.amount)), sub: fmtDate(t.date) })),
+        alerts: petCat && petTotal > petCat.budget
+          ? [`You're ${fmt$(petTotal - petCat.budget)} over your ${fmt$(petCat.budget)} pet budget.`]
+          : [],
+        footer: `Total pet spend: ${fmt$(petTotal)}`,
+      };
+    },
+  },
+
+  /* ── Tips / advice ─────────────────────────────────────── */
+  {
+    patterns: ['tip', 'advice', 'suggest', 'recommendation', 'what should i', 'help me', 'optimize'],
+    handler: () => {
+      const bigOver = [...overBudget].sort((a, b) => (b.spent - b.budget) - (a.spent - a.budget));
+      const investRate = ((TRANSACTIONS.filter(t => t.cat === 'Investing').reduce((s, t) => s + Math.abs(t.amount), 0) / income) * 100).toFixed(0);
+      const alerts = [];
+      if (bigOver[0]) alerts.push(`Biggest overage: ${bigOver[0].icon} ${bigOver[0].name} is ${fmt$(bigOver[0].spent - bigOver[0].budget)} over budget.`);
+      alerts.push(`Investing ${investRate}% of income — ${investRate >= 20 ? 'great rate!' : 'aim for 20%+ if possible.'}`);
+      if (netCash > 0) alerts.push(`${fmt$(netCash)} left unallocated — consider adding to savings or Roth IRA.`);
+      return {
+        text: `Here are a few things to look at for ${CONFIG.period}:`,
+        alerts,
+      };
+    },
+  },
+
+  /* ── 10-year projection ────────────────────────────────── */
+  {
+    patterns: ['projection', 'project', 'forecast', 'future', '10 year', 'growth', 'compound'],
+    handler: () => {
+      const monthly = (50 * 4.33) + (75 * 2.17) + 500;
+      return {
+        text: `10-year investment projection at 8% avg annual return (based on current automations of ~${fmt$(monthly)}/mo):`,
+        table: [1, 3, 5, 10].map(y => {
+          const val = monthly * 12 * y * (1 + 0.08 * y / 2);
+          return { label: `📅 ${y} year${y > 1 ? 's' : ''}`, value: fmt$(val), pos: true };
+        }),
+        alerts: ['Projections assume no additional lump-sum contributions and reinvested returns.'],
+      };
+    },
+  },
+];
+
+/* ── Fallback response ─────────────────────────────────── */
+const FALLBACK = {
+  text: `I didn't catch that. Try asking about:`,
+  table: [
+    { label: '🏦 Balances',      value: '"what are my balances?"' },
+    { label: '💸 Spending',      value: '"how did I spend this month?"' },
+    { label: '📊 Budget',        value: '"am I on budget?"' },
+    { label: '📈 Investing',     value: '"how much did I invest?"' },
+    { label: '🔄 Automations',   value: '"show my bills"' },
+    { label: '📋 Transactions',  value: '"recent transactions"' },
+    { label: '💡 Advice',        value: '"any tips?"' },
+  ],
+};
+
+function processQuery(text) {
+  const lower = text.toLowerCase().trim();
+  for (const intent of INTENTS) {
+    if (intent.patterns.some(p => lower.includes(p))) {
+      return { ...intent.handler(), id: Date.now() + 1, role: 'agent' };
+    }
+  }
+  return { ...FALLBACK, id: Date.now() + 1, role: 'agent' };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   QUICK REPLIES — edit this list freely
+   ═══════════════════════════════════════════════════════════ */
+const QUICK_REPLIES = [
+  'What are my balances?',
+  'How did I spend this month?',
+  'Am I on budget?',
+  'Show recent transactions',
+  'How much did I invest?',
+  'Show my bills',
+  'Any tips?',
+  '10-year projection',
+];
+
+/* ═══════════════════════════════════════════════════════════
+   UI COMPONENTS
+   ═══════════════════════════════════════════════════════════ */
+
+function BudgetBar({ cat }) {
+  const pct  = Math.min((cat.spent / cat.budget) * 100, 100);
+  const over = cat.spent > cat.budget;
+  const col  = over ? 'var(--red)' : pct > 85 ? 'var(--yellow)' : 'var(--accent)';
+  return (
+    <div className="budget-row">
+      <div className="budget-label">
+        <span>{cat.icon} {cat.name}</span>
+        <span style={{ color: over ? 'var(--red)' : 'var(--text3)', fontWeight: over ? 700 : 400 }}>
+          {fmt$(cat.spent)} / {fmt$(cat.budget)}
+        </span>
+      </div>
+      <div className="bar-wrap">
+        <div className="bar-fill" style={{ width: pct + '%', background: col }} />
+      </div>
+    </div>
+  );
+}
+
+function AgentMessage({ msg }) {
+  if (msg.role === 'user') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="bubble bubble-user">{msg.text}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="bubble-name">Finance Agent</div>
+      <div className="bubble bubble-agent">
+
+        {/* Main text */}
+        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+
+        {/* Table rows */}
+        {msg.table && (
+          <table className="data-table">
+            <tbody>
+              {msg.table.map((row, i) => (
+                <tr key={i}>
+                  <td>
+                    <span>{row.label}</span>
+                    {row.sub && <span className="sub">{row.sub}</span>}
+                  </td>
+                  <td className={row.pos === true ? 'c-green' : row.pos === false ? 'c-red' : ''}>
+                    {row.value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Budget bars */}
+        {msg.budgets && (
+          <div style={{ marginTop: 10 }}>
+            {msg.budgets.map((b, i) => <BudgetBar key={i} cat={b} />)}
+          </div>
+        )}
+
+        {/* Alert callouts */}
+        {msg.alerts && msg.alerts.map((a, i) => (
+          <div key={i} className="alert-card">
+            <div className="alert-icon">💡</div>
+            <div>{a}</div>
+          </div>
+        ))}
+
+        {/* Footer summary */}
+        {msg.footer && (
+          <div className="divider">{msg.footer}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN APP
+   ═══════════════════════════════════════════════════════════ */
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [input,    setInput]    = useState('');
+  const [typing,   setTyping]   = useState(false);
+  const [showQuick, setShowQuick] = useState(true);
+  const chatRef = useRef(null);
+  const inputRef = useRef(null);
+
+  /* Greeting on mount */
+  useEffect(() => {
+    const greeting = {
+      role: 'agent',
+      id:   0,
+      text: `Hey ${CONFIG.name}! I'm your Finance Agent for ${CONFIG.period}.\n\nHere's where you stand:`,
+      table: [
+        { label: '🏦 Total Balance',   value: fmt$(totalBalance),       pos: true            },
+        { label: '💵 Monthly Income',  value: fmt$(income),             pos: true            },
+        { label: '💸 Monthly Expenses',value: fmt$(expenses),           pos: false           },
+        { label: '📊 Net Cash Flow',   value: sign(netCash), pos: netCash >= 0  },
+      ],
+      alerts: overBudget.length
+        ? [`Heads up: you're over budget in ${overBudget.length} categor${overBudget.length === 1 ? 'y' : 'ies'}: ${overBudget.map(c => c.name).join(', ')}.`]
+        : undefined,
+    };
+    setMessages([greeting]);
+  }, []);
+
+  /* Auto-scroll to bottom on new messages */
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [messages, typing]);
+
+  const sendMessage = useCallback((text) => {
+    if (!text.trim()) return;
+    const userMsg = { role: 'user', id: Date.now(), text: text.trim() };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setShowQuick(false);
+    setTyping(true);
+
+    /* Simulated agent delay — replace with real API call here */
+    const delay = 500 + Math.random() * 400;
+    setTimeout(() => {
+      const response = processQuery(text);
+      setMessages(prev => [...prev, response]);
+      setTyping(false);
+    }, delay);
+  }, []);
+
+  const handleKey = e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
+  };
+
+  return (
+    <div className="app">
+
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="header">
+        <div>
+          <div className="header-title">Finance Agent</div>
+          <div className="header-sub">{CONFIG.period} · {CONFIG.name}</div>
+        </div>
+        <div className="status-row">
+          <div className="status-dot" />
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>Active</span>
+        </div>
+      </div>
+
+      {/* ── Metrics strip ──────────────────────────────────── */}
+      <div className="metrics">
+        <div className="metric">
+          <div className="metric-val" style={{ color: 'var(--green)' }}>{fmt$(income)}</div>
+          <div className="metric-lbl">Income</div>
+        </div>
+        <div className="metric">
+          <div className="metric-val" style={{ color: 'var(--red)' }}>{fmt$(expenses)}</div>
+          <div className="metric-lbl">Spent</div>
+        </div>
+        <div className="metric">
+          <div className="metric-val" style={{ color: netCash >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            {sign(netCash)}
+          </div>
+          <div className="metric-lbl">Net</div>
+        </div>
+      </div>
+
+      {/* ── Chat area ──────────────────────────────────────── */}
+      <div className="chat" ref={chatRef}>
+        {messages.map(msg => <AgentMessage key={msg.id} msg={msg} />)}
+
+        {/* Typing indicator */}
+        {typing && (
+          <div>
+            <div className="bubble-name">Finance Agent</div>
+            <div className="bubble bubble-agent">
+              <div className="typing"><span/><span/><span/></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Quick replies (shown until first message sent) ── */}
+      {showQuick && (
+        <div className="quick-wrap">
+          <div className="quick-lbl">Try asking…</div>
+          {QUICK_REPLIES.map(q => (
+            <button key={q} className="quick-btn" onClick={() => sendMessage(q)}>{q}</button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Input bar ──────────────────────────────────────── */}
+      <div className="input-area">
+        <input
+          ref={inputRef}
+          className="input-field"
+          placeholder="Ask about your finances…"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKey}
+        />
+        <button className="send-btn" onClick={() => sendMessage(input)} disabled={!input.trim()}>
+          ↑
+        </button>
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
